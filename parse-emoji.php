@@ -8,16 +8,9 @@ Version: 1.0
 Author URI: http://github.com/LiJohnson/
 */
 
-if( !class_exists('ParseEmoji') ){
-	class ParseEmoji{
-		public function  __construct(){
-
-		}
-	}
-}
-
 add_action('wp_footer', function(){
 	$emojiData = "//api.github.com/emojis";
+	$ajaxUrl = admin_url( 'admin-ajax.php' );
 ?>
 <style>
 	.wp-emoji{
@@ -30,25 +23,26 @@ add_action('wp_footer', function(){
 </style>
 <script>
 (function(win,doc,$){
-	var EMOJI_DATA = "<?php echo $emojiData ?>";
+	var AJAX_URL = "<?php echo $ajaxUrl;?>";
 	var PASS_NODE = /IFRAME|NOFRAMES|NOSCRIPT|SCRIPT|STYLE/i;
 	var NODE_TYPE_ELEMENT = 1;
 	var NODE_TYPE_TEXT = 3;
 
-	var parseRules = [{
-		reg:/:[^:]+:/g,
-		parse:(function(){
-			var cache = JSON.parse(localStorage['EMOJI_DATA']||"{}").emoji;
-			return function(emoji){
-				return cache[emoji.replace(/:/g,'')];
+	var parseRules = [
+		{
+			reg:/:[^:]+:/g,
+			name:'github',
+			parse:function(emoji,data){
+				return data[emoji.replace(/:/g,'')];
 			}
-		})()
-	},{
-		reg:/\[[^\]]+\]/g,
-		parse:function(emoji){
-			return false;
+		},{
+			reg:/\[[^\]]+\]/g,
+			name:'weibo',
+			parse:function(emoji,data){
+				return data[emoji];
+			}
 		}
-	}];
+	];
 
 	var getTextNode = function(node){
 		var nodes = [];
@@ -90,41 +84,54 @@ add_action('wp_footer', function(){
 		e.target.parentNode.replaceChild(document.createTextNode(e.target.alt),e.target);
 	}
 
-	var load = function(callBack){
+	var loadEmoji =function(name,callBack){
+		if(!name)return callBack({});
+		name = "parse_emoji_" + name;
 		var stor = window.localStorage || {};
-		var data = JSON.parse(stor['EMOJI_DATA']||"{}");
-		if( data.time && new Date() - data.time < 30*24*60*60*1000  ){
-			return callBack.call(this,data.emoji);
+		var data = JSON.parse(stor[name]||"{}");
+
+		if( data.time && new Date() - data.time < 30*24*60*60*1000 ){
+			console.log("locad %s from cache " ,name );
+			return callBack(data.emoji);
 		}
-		$.get(EMOJI_DATA,function(emoji){
+
+		$.get(AJAX_URL,{action:name},function(emoji){
+			console.log("locad %s from network " ,name );
 			var data = {time:new Date()*1 , emoji:emoji};
-			stor['EMOJI_DATA'] = JSON.stringify(data);	
-			callBack.call(this,data.emoji);
+			stor[name] = JSON.stringify(data);	
+			callBack(data.emoji);
 		},'json');
-	}
+	};
 
-	var parseEmoji = function(rootNode , opt){
-		var textNodes = getTextNode(rootNode);
-		var url , documentFragment , node , parseNodes , parseNode , parseString ,	 unicode , i , j ;
-		for( i = 0 , node ; node = textNodes[i] ; i++ ){
-			parseString = node.nodeValue.replace(opt.reg,function(emojiString){
-				 url = opt.parse(emojiString) ;
-				 if(!url)return emojiString;
-				 return "<img class='wp-emoji' src='" + url + "' title='" + emojiString + "' alt='" + emojiString + "' draggable=false />";
-			});
+	var parseEmoji = function(opt){
+		if(opt.disable)return;
 
-			if(parseString != node.nodeValue){
-				console.log(parseString,node.nodeValue);
-				node.parentNode.replaceChild(textToNodes(parseString),node);
+		loadEmoji(opt.name , function(emojiData){
+			var textNodes , url  , node  , parseString  , i ;
+			textNodes = getTextNode(opt.rootNode || document.body);
+
+			for( i = 0 , node ; node = textNodes[i] ; i++ ){
+				parseString = node.nodeValue.replace(opt.reg,function(emojiString){
+					 url = opt.parse ? opt.parse(emojiString , emojiData) : emojiData[emojiString] ;
+					 if(!url)return emojiString;
+					 return "<img class='wp-emoji' src='" + url + "' title='" + emojiString + "' alt='" + emojiString + "' draggable=false />";
+				});
+
+				if(parseString != node.nodeValue){
+					//console.log(parseString,node.nodeValue);
+					node.parentNode.replaceChild(textToNodes(parseString),node);
+				}
 			}
-		}
-	}
+		});
+	};
 
 	parseRules.forEach(function(opt){
-		parseEmoji(document.querySelector("body"),opt);
+		parseEmoji(opt);
 	});
 
 })(this,document,jQuery);
 </script>
 <?php
 });
+
+require __DIR__ . '/ajax-json-data.php';
