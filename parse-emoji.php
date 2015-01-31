@@ -153,7 +153,11 @@ add_action('wp_footer', function(){
 		});
 	};
 
-	help();
+	doc.addEventListener("click",function(e){
+		e.detail >= 3 && help();
+	});
+
+	//help();
 	parseRules.forEach(function(opt){
 		parseEmoji(opt);
 	});
