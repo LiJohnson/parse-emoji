@@ -167,4 +167,8 @@ add_action('wp_footer', function(){
 <?php
 });
 
-require __DIR__ . '/ajax-json-data.php';
+add_action('wp_ajax_parse_emoji_weibo'.$e,function(){require 'weibo.json'; wp_die();});
+add_action('wp_ajax_nopriv_parse_emoji_weibo'.$e,function(){require 'weibo.json'; wp_die();});
+add_action('wp_ajax_parse_emoji_github'.$e,function(){require 'github.json'; wp_die();});
+add_action('wp_ajax_nopriv_parse_emoji_github'.$e,function(){require 'github.json'; wp_die();});
+
