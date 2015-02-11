@@ -20,15 +20,23 @@ class ParseEmoji{
 
 	function editor(){
 		?>
+		<link rel="stylesheet" href="http://ichord.github.io/At.js/dist/css/jquery.atwho.css" />
+		
 		<script src="http://ichord.github.io/Caret.js/src/jquery.caret.js" ></script>
 		<script src="http://ichord.github.io/At.js/dist/js/jquery.atwho.js" ></script>
 		<script>
 		(function($){
 			<?php $this->loadEmoji(); ?>
+			var config = {
+				displayTpl:"<li>${name}<img src=${url} width=15 height=15 /></li>",
+				startWithSpace: false,
+				//limit: 8,
+				insertTpl: "${name}"
+			};
 
 			tinyMCE.onAddEditor.add(function(mgr, ed) {
 				ed.onInit.add(function(ed, l) {
-					jQuery(ed.contentDocument.activeElement).atwho({
+					jQuery(ed.contentDocument.activeElement).atwho($.extend({
 						at:'[',
 						callbacks: {
 						    remoteFilter: function(query, callback) {
@@ -41,7 +49,20 @@ class ParseEmoji{
 						    	});  
 							}
 						}
-					});
+					},config)).atwho($.extend({
+						at:':',
+						callbacks: {
+						    remoteFilter: function(query, callback) {
+						    	loadEmoji('github',function(data){
+						    		var arr = [];
+						    		$.each(data,function(name,url){
+						    			arr.push({name:":"+name+":",url:url});
+						    		});
+						    		callback(arr);
+						    	});  
+							}
+						}
+					},config));
 				});
 			});			
 		})(jQuery);
