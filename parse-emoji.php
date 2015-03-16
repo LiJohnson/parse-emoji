@@ -22,6 +22,7 @@ class ParseEmoji{
 		?>
 		<link rel="stylesheet" href="http://ichord.github.io/At.js/dist/css/jquery.atwho.css" />
 		
+		<script>window.$=window.jQuery</script>
 		<script src="http://ichord.github.io/Caret.js/src/jquery.caret.js" ></script>
 		<script src="http://ichord.github.io/At.js/dist/js/jquery.atwho.js" ></script>
 		<script>
